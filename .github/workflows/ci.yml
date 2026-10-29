@@ -1,0 +1,35 @@
+name: Delivery pipeline
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test API
+        run: python -m unittest discover -s tests -v
+  package:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and prepare release
+        run: |
+          mkdir -p release
+          docker build -t "delivery-api:$IMAGE_TAG" .
+          docker save "delivery-api:$IMAGE_TAG" -o release/image.tar
+          sed "s/PLACEHOLDER/$IMAGE_TAG/g" k8s/deployment.yaml > release/deployment.yaml
+          echo "Packaged delivery-api:$IMAGE_TAG"
+          cat release/deployment.yaml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: release/
+          retention-days: 3
