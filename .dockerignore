@@ -1,4 +1,5 @@
 .git
+.lab
 __pycache__
 *.tar
 release/
